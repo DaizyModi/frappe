@@ -18,6 +18,28 @@ class TestWebPage(unittest.TestCase):
 		self.assertTrue(PathResolver("test-web-page-1/test-web-page-3").is_valid_path())
 		self.assertFalse(PathResolver("test-web-page-1/test-web-page-Random").is_valid_path())
 
+	def test_login_required(self):
+		web_page = frappe.get_doc(dict(
+			doctype='Web Page',
+			title='Test Login Required',
+			published=1,
+			login_required=1,
+			content_type='Rich Text',
+			main_section='rich text',
+			main_section_md='# h1\nmarkdown content',
+			main_section_html='<div>html content</div>'
+		)).insert()
+
+		with self.assertRaises(frappe.PermissionError):
+			get_response_content(path='test-login-required')
+		
+		frappe.set_user("Administrator")
+		web_page.login_required = 0
+		web_page.save()
+
+		frappe.set_user("Guest")
+		self.assertRaises(frappe.PermissionError, get_response_content('/test-login-required'))
+
 	def test_content_type(self):
 		web_page = frappe.get_doc(dict(
 			doctype = 'Web Page',

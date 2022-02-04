@@ -12,6 +12,7 @@
   "title",
   "route",
   "published",
+  "login_required",
   "dynamic_route",
   "cb1",
   "module",
@@ -313,6 +314,12 @@
    "fieldtype": "Link",
    "label": "Module (for export)",
    "options": "Module Def"
+  },
+  {
+   "default": "0",
+   "fieldname": "login_required",
+   "fieldtype": "Check",
+   "label": "Login Required"
   }
  ],
  "has_web_view": 1,
@@ -322,7 +329,7 @@
  "is_published_field": "published",
  "links": [],
  "max_attachments": 20,
- "modified": "2021-09-04 12:11:56.070994",
+ "modified": "2022-01-02 19:26:11.352669",
  "modified_by": "Administrator",
  "module": "Website",
  "name": "Web Page",
@@ -342,6 +349,7 @@
  "show_name_in_global_search": 1,
  "sort_field": "modified",
  "sort_order": "ASC",
+ "states": [],
  "title_field": "title",
  "track_changes": 1
 }

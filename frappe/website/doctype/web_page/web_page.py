@@ -37,6 +37,9 @@ class WebPage(WebsiteGenerator):
 		context.source_content_type = self.content_type
 		context.title = self.title
 
+		if self.login_required and frappe.session.user == 'Guest':
+			frappe.throw(_("Not Permitted"), frappe.PermissionError)
+
 		if self.context_script:
 			_locals = dict(context = frappe._dict())
 			safe_exec(self.context_script, None, _locals)
