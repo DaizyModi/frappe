@@ -18,20 +18,18 @@ frappe.views.ReportView = class ReportView extends frappe.views.ListView {
     setup_defaults() {
         super.setup_defaults();
         this.page_title = __('Report:') + ' ' + this.page_title;
-        this.menu_items = this.report_menu_items();
-        this.view = 'Report';
-
         const route = frappe.get_route();
         if (route.length === 4) {
             this.report_name = route[3];
         }
+
+        this.view = 'Report';
 
         if (this.report_name) {
             return this.get_report_doc()
                 .then(doc => {
                     this.report_doc = doc;
                     this.report_doc.json = JSON.parse(this.report_doc.json);
-
                     this.filters = this.report_doc.json.filters;
                     this.order_by = this.report_doc.json.order_by;
                     this.add_totals_row = this.report_doc.json.add_totals_row;
@@ -39,6 +37,7 @@ frappe.views.ReportView = class ReportView extends frappe.views.ListView {
                     this.page_length = this.report_doc.json.page_length || 20;
                     this.order_by = this.report_doc.json.order_by || 'modified desc';
                     this.chart_args = this.report_doc.json.chart_args;
+                    this.menu_items = this.report_menu_items();
                 });
         } else {
             this.add_totals_row = this.view_user_settings.add_totals_row || 0;
@@ -67,10 +66,10 @@ frappe.views.ReportView = class ReportView extends frappe.views.ListView {
 
     setup_charts_area() {
         this.$charts_wrapper = $(`<div class="charts-wrapper hidden">
-			<div class="text-right"><button class="btn btn-default btn-xs btn-chart-configure"
-				style="margin-right: 15px; margin-top: 15px">Configure</button></div>
-			<div class="charts-inner-wrapper"></div>
-		</div>`);
+            <div class="text-right"><button class="btn btn-default btn-xs btn-chart-configure"
+                style="margin-right: 15px; margin-top: 15px">Configure</button></div>
+            <div class="charts-inner-wrapper"></div>
+        </div>`);
         this.$result.append(this.$charts_wrapper);
         this.$charts_wrapper.find('.btn-chart-configure').on('click', () => {
             this.setup_charts();
@@ -1111,8 +1110,8 @@ frappe.views.ReportView = class ReportView extends frappe.views.ListView {
         let cell_value = __('Totals').bold();
         if (frappe.model.is_numeric_field(df.docfield)) {
             cell_value = `<span class="flex justify-between">
-				${cell_value} ${$(formatted_value).text()}
-			</span>`;
+                ${cell_value} ${$(formatted_value).text()}
+            </span>`;
         }
         return cell_value;
     }
@@ -1233,6 +1232,29 @@ frappe.views.ReportView = class ReportView extends frappe.views.ListView {
             frappe.prompt({ fieldname: 'name', label: __('New Report name'), reqd: 1, fieldtype: 'Data' }, (data) => {
                 _save_report(data.name);
             }, __('Save As'));
+        }
+    }
+
+    delete_report() {
+        const _delete_report = (name) => {
+
+            return frappe.call({
+                method: 'frappe.desk.reportview.delete_report',
+                args: {
+                    name: name,
+                    doctype: this.doctype
+                },
+                callback: (r) => {
+                    if (r.exc) {
+                        frappe.msgprint(__("Report was not deleted (there were errors)"));
+                        return;
+                    }
+                }
+            });
+        }
+
+        if (this.report_name) {
+            _delete_report(this.report_name);
         }
     }
 
@@ -1375,10 +1397,10 @@ frappe.views.ReportView = class ReportView extends frappe.views.ListView {
                     });
 
                     d.$body.prepend(`
-						<div class="columns-search">
-							<input type="text" placeholder="${__('Search')}" data-element="search" class="form-control input-xs">
-						</div>
-					`);
+                        <div class="columns-search">
+                            <input type="text" placeholder="${__('Search')}" data-element="search" class="form-control input-xs">
+                        </div>
+                    `);
 
                     frappe.utils.setup_search(d.$body, '.unit-checkbox', '.label-area');
                     d.show();
@@ -1457,11 +1479,25 @@ frappe.views.ReportView = class ReportView extends frappe.views.ListView {
             }
         });
 
-        // save buttons
+        // Report Manager or Report Owner can save the report
+        if ((frappe.user.is_report_manager()) || (this.report_doc.owner === frappe.session.user)) {
+            items.push({
+                label: __("Save"),
+                action: () => this.save_report('save')
+            });
+        }
+
         items = items.concat([
-            { label: __('Save'), action: () => this.save_report('save') },
             { label: __('Save As'), action: () => this.save_report('save_as') }
         ]);
+
+        // Report Manager or Report Owner can delete the report
+        if ((frappe.user.is_report_manager()) || (this.report_doc.owner === frappe.session.user)) {
+            items.push({
+                label: __("Delete"),
+                action: () => this.delete_report()
+            });
+        }
 
         // user permissions
         if (this.report_name && frappe.model.can_set_user_permissions("Report")) {

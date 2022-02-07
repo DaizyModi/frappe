@@ -4,6 +4,7 @@
 import frappe, json, os
 import unittest
 from frappe.desk.query_report import run, save_report
+from frappe.desk.reportview import delete_report
 from frappe.custom.doctype.customize_form.customize_form import reset_customization
 
 test_records = frappe.get_test_records('Report')
@@ -29,6 +30,44 @@ class TestReport(unittest.TestCase):
 		self.assertEqual(columns[0].get('label'), 'Name')
 		self.assertEqual(columns[1].get('label'), 'Module')
 		self.assertTrue('User' in [d.get('name') for d in data])
+
+	def test_delete_report_builder_report(self):
+		#User has no permission to delete report if it's not report owner
+
+		frappe.set_user("test2@example.com")
+		doc = frappe.get_doc("Report", "Dummy Report 1")
+		self.assertRaises(frappe.ValidationError, delete_report(doc.name))
+
+		#User has permission to delete report if it's report owner
+		frappe.set_user("test@example.com")
+		report = frappe.get_doc({
+			'doctype': 'Report',
+			'ref_doctype': 'User',
+			'report_name': 'Dummy Report',
+			'report_type': 'Report Builder',
+			'is_standard': 'No',
+		}).insert(ignore_permissions=True)
+		delete_report(report.name)
+
+	def test_save_as_report(self):
+		doc = frappe.get_doc("Report", "User Activity Report")
+		custom_report_name = save_report(
+			'User Activity Report',
+			'User Activity Report 1',
+			json.dumps([{
+				'fieldname': 'email',
+				'fieldtype': 'Data',
+				'label': 'Email',
+				'insert_after_index': 0,
+				'link_field': 'name',
+				'doctype': 'User',
+				'options': 'Email',
+				'width': 100,
+				'id':'email',
+				'name': 'Email'
+			}])
+		)
+		custom_report = frappe.get_doc("Report", custom_report_name)
 
 	def test_custom_report(self):
 		reset_customization('User')
